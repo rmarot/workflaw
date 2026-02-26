@@ -1,0 +1,17 @@
+name: Comment
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  comment-issue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract issue from title
+        id: extract
+        env:
+          TITLE: "${{ github.event.issue.title }}"
+        run: |
+          jira=$(echo -n $TITLE | awk '{print $1}' | sed -e 's/://')
+          echo "Extracted: $jira"
