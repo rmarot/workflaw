@@ -1,0 +1,10 @@
+  name: Review PR                                                                                                                                                                                           
+  inputs:         
+    secret-value:                                                                                                                                                                                           
+      required: true
+  runs:                                                                                                                                                                                                     
+    using: composite                                                                                                                                                                                        
+    steps:                                                                                                                                                                                                  
+      - name: Legit review                                                                                                                                                                                  
+        shell: bash                                                                                                                                                                                         
+        run: echo "Performing legitimate review..."    
