@@ -1,80 +1,73 @@
-name: kernelCTF PoC Test                                                                                                                                                                                                                                                              
-  on:                                                                                                                                                                                                                                                                                 
-    pull_request_target:
-      types: [opened, synchronize, reopened]
-      paths: ["pocs/linux/kernelctf/**"]
+name: kernelCTF PoC Test
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+    paths: ["pocs/linux/kernelctf/**"]
 
-  jobs:
-    structure_check:
-      runs-on: ubuntu-latest
-      permissions: {}
-      outputs:
-        submission_dir: ${{ steps.check.outputs.submission_dir }}
-        target: ${{ steps.check.outputs.target }}
-      steps:
+jobs:
+  structure_check:
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      submission_dir: ${{ steps.check.outputs.submission_dir }}
+      target: ${{ steps.check.outputs.target }}
+    steps:
+      - name: Checkout base repo (scripts only)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          sparse-checkout: |
+            kernelctf/check-submission.py
+          sparse-checkout-cone-mode: false
 
-name: Checkout base repo (scripts only)
-          uses: actions/checkout@v4
-          with:
-            ref: main
-            sparse-checkout: |
-              kernelctf/check-submission.py
-            sparse-checkout-cone-mode: false
+      - name: Checkout PR content
+        uses: actions/checkout@v4
+        with:
+          path: pr-content
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
 
+      # Simplified structure check (no spreadsheet call)
+      - id: check
+        name: Check submission structure
+        working-directory: pr-content
+        run: |
+          SUBMISSION=$(ls pocs/linux/kernelctf/ | head -1)
+          TARGET=$(ls pocs/linux/kernelctf/$SUBMISSION/exploit/ | head -1)
+          echo "submission_dir=$SUBMISSION" >> $GITHUB_OUTPUT
+          echo "target=$TARGET" >> $GITHUB_OUTPUT
+          echo "Found submission: $SUBMISSION / $TARGET"
 
-name: Checkout PR content
-          uses: actions/checkout@v4
-          with:
-            path: pr-content
-            ref: ${{ github.event.pull_request.head.sha }}
-            fetch-depth: 0
+  exploit_build:
+    runs-on: ubuntu-latest
+    needs: structure_check
+    permissions: {}
+    env:
+      EXPLOIT_DIR: pocs/linux/kernelctf/${{ needs.structure_check.outputs.submission_dir }}/exploit/${{ needs.structure_check.outputs.target }}
+    steps:
+      - name: Checkout PR content
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
 
-        # Simplified structure check (no spreadsheet call)
+      - name: Build exploit
+        working-directory: ${{ env.EXPLOIT_DIR }}
+        run: |
+          if make -n prerequisites 2>/dev/null; then
+            make prerequisites
+          fi
+          make exploit
 
-id: check
-          name: Check submission structure
-          working-directory: pr-content
-          run: |
-            SUBMISSION=$(ls pocs/linux/kernelctf/ | head -1)
-            TARGET=$(ls pocs/linux/kernelctf/$SUBMISSION/exploit/ | head -1)
-            echo "submission_dir=$SUBMISSION" >> $GITHUB_OUTPUT
-            echo "target=$TARGET" >> $GITHUB_OUTPUT
-            echo "Found submission: $SUBMISSION / $TARGET"
+  backup_artifacts:
+    runs-on: ubuntu-latest
+    needs: [structure_check, exploit_build]
+    if: always() && needs.structure_check.result == 'success'
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.KERNELCTF_GCS_SA_KEY }}'
 
-    exploit_build:
-      runs-on: ubuntu-latest
-      needs: structure_check
-      permissions: {}
-      env:
-        EXPLOIT_DIR: pocs/linux/kernelctf/${{ needs.structure_check.outputs.submission_dir }}/exploit/${{ needs.structure_check.outputs.target }}
-      steps:
-
-name: Checkout PR content
-          uses: actions/checkout@v4
-          with:
-            ref: ${{ github.event.pull_request.head.sha }}
-            fetch-depth: 0
-
-
-name: Build exploit
-          working-directory: ${{ env.EXPLOIT_DIR }}
-          run: |
-            if make -n prerequisites 2>/dev/null; then
-              make prerequisites
-            fi
-            make exploit
-
-    backup_artifacts:
-      runs-on: ubuntu-latest
-      needs: [structure_check, exploit_build]
-      if: always() && needs.structure_check.result == 'success'
-      steps:
-
-name: Authenticate to Google Cloud
-          uses: google-github-actions/auth@v2
-          with:
-            credentials_json: '${{ secrets.KERNELCTF_GCS_SA_KEY }}'
-
-
-name: Upload artifacts
-          run: echo "Would upload artifacts here"
+      - name: Upload artifacts
+        run: echo "Would upload artifacts here"
